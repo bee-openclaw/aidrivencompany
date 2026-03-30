@@ -1,0 +1,19 @@
+{
+  "name": "aidrivencompany",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Company OS — Create, simulate, and operate companies end-to-end using AI",
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "db:migrate": "pnpm --filter @aidrivencompany/db run migrate",
+    "db:seed": "pnpm --filter @aidrivencompany/server run seed"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.15.0"
+  }
+}

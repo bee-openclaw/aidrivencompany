@@ -1,0 +1,29 @@
+{
+  "name": "@aidrivencompany/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --outdir=dist --format=esm --external:better-sqlite3",
+    "start": "node dist/index.js",
+    "seed": "tsx src/seed.ts",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aidrivencompany/db": "workspace:*",
+    "@aidrivencompany/shared": "workspace:*",
+    "express": "^5.0.0",
+    "cors": "^2.8.5",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "tsx": "^4.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  }
+}
