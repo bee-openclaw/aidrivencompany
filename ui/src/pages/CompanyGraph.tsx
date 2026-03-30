@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ReactFlow,
   Controls,
@@ -17,56 +18,123 @@ import type { GraphNode, NodeType } from '@aidrivencompany/shared';
 import { useCompany } from '@/context/CompanyContext';
 import { fetchGraph } from '@/api/graph';
 import { NodeBadge } from '@/components/NodeBadge';
-import { X } from 'lucide-react';
+import { X, Maximize, FlaskConical, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const NODE_HEADER_COLORS: Record<NodeType, string> = {
-  idea: 'bg-purple-500',
-  icp: 'bg-amber-500',
-  feature: 'bg-blue-500',
-  pricing: 'bg-emerald-500',
-  channel: 'bg-pink-500',
-  campaign: 'bg-orange-500',
-  proof: 'bg-cyan-500',
-  metric: 'bg-indigo-500',
-  risk: 'bg-red-500',
-  decision: 'bg-lime-500',
-  workflow: 'bg-slate-500',
-  agent: 'bg-teal-500',
-  goal: 'bg-purple-500',
-  milestone: 'bg-sky-500',
+const NODE_BORDER_COLORS: Record<NodeType, string> = {
+  idea: '#a78bfa',
+  icp: '#fbbf24',
+  feature: '#60a5fa',
+  pricing: '#34d399',
+  channel: '#f472b6',
+  campaign: '#fb923c',
+  proof: '#22d3ee',
+  metric: '#818cf8',
+  risk: '#f87171',
+  decision: '#a3e635',
+  workflow: '#94a3b8',
+  agent: '#2dd4bf',
+  goal: '#c084fc',
+  milestone: '#38bdf8',
+};
+
+const NODE_DOT_CLASSES: Record<NodeType, string> = {
+  idea: 'bg-purple-400',
+  icp: 'bg-amber-400',
+  feature: 'bg-blue-400',
+  pricing: 'bg-emerald-400',
+  channel: 'bg-pink-400',
+  campaign: 'bg-orange-400',
+  proof: 'bg-cyan-400',
+  metric: 'bg-indigo-400',
+  risk: 'bg-red-400',
+  decision: 'bg-lime-400',
+  workflow: 'bg-slate-400',
+  agent: 'bg-teal-400',
+  goal: 'bg-purple-400',
+  milestone: 'bg-sky-400',
 };
 
 type GraphNodeData = {
   label: string;
   description: string;
   nodeType: NodeType;
+  propertyPreview: string;
   raw: GraphNode;
 };
 
-function CustomNode({ data }: NodeProps<Node<GraphNodeData>>) {
+function getPropertyPreview(node: GraphNode): string {
+  const props = node.properties;
+  if (node.type === 'pricing' && props.price) return `$${props.price}/mo`;
+  if (props.budget) return `$${props.budget}`;
+  if (props.score) return `Score: ${props.score}`;
+  return '';
+}
+
+function CustomNode({ data, selected }: NodeProps<Node<GraphNodeData>>) {
+  const borderColor = NODE_BORDER_COLORS[data.nodeType] ?? '#94a3b8';
+
   return (
-    <div className="w-56 overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-lg">
-      <Handle type="target" position={Position.Top} className="!bg-gray-500" />
-      <div className={cn('px-3 py-1.5', NODE_HEADER_COLORS[data.nodeType])}>
-        <span className="text-xs font-semibold uppercase tracking-wide text-white">
-          {data.nodeType}
-        </span>
+    <div
+      className={cn(
+        'group w-[180px] overflow-hidden rounded-xl border border-slate-700/40 bg-slate-900/90 shadow-lg transition-all duration-200',
+        'hover:scale-[1.02]',
+        selected && 'ring-2 ring-offset-1 ring-offset-slate-950',
+      )}
+      style={{
+        borderTopWidth: '3px',
+        borderTopColor: borderColor,
+        ...(selected
+          ? { boxShadow: `0 0 20px 4px ${borderColor}33`, ringColor: borderColor }
+          : {}),
+      }}
+    >
+      <Handle type="target" position={Position.Top} className="!bg-slate-500 !border-slate-600" />
+      <div className="px-3 pt-2.5 pb-1">
+        <div className="flex items-center gap-1.5">
+          <div className={cn('h-2 w-2 rounded-full', NODE_DOT_CLASSES[data.nodeType])} />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            {data.nodeType}
+          </span>
+        </div>
       </div>
-      <div className="p-3">
-        <p className="text-sm font-medium text-gray-100">{data.label}</p>
+      <div className="px-3 pb-3">
+        <p className="text-sm font-bold text-slate-100 leading-tight">{data.label}</p>
         {data.description && (
-          <p className="mt-1 line-clamp-2 text-xs text-gray-400">{data.description}</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">
+            {data.description}
+          </p>
+        )}
+        {data.propertyPreview && (
+          <p className="mt-1.5 text-[11px] font-medium text-slate-500">
+            {data.propertyPreview}
+          </p>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-500" />
+      <Handle type="source" position={Position.Bottom} className="!bg-slate-500 !border-slate-600" />
     </div>
   );
 }
 
 const nodeTypes: NodeTypes = { custom: CustomNode };
 
+function SkeletonGraph() {
+  return (
+    <div className="flex h-full items-center justify-center animate-fade-in">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative">
+          <div className="h-16 w-16 animate-pulse rounded-2xl bg-slate-700/40" />
+          <div className="absolute -bottom-2 -right-2 h-10 w-10 animate-pulse rounded-xl bg-slate-700/30" />
+          <div className="absolute -left-3 -top-1 h-8 w-8 animate-pulse rounded-lg bg-slate-700/20" />
+        </div>
+        <p className="text-sm text-slate-500">Loading company graph...</p>
+      </div>
+    </div>
+  );
+}
+
 export function CompanyGraph() {
+  const navigate = useNavigate();
   const { company } = useCompany();
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
   const [graphEdges, setGraphEdges] = useState<{ id: string; sourceNodeId: string; targetNodeId: string; type: string }[]>([]);
@@ -95,6 +163,7 @@ export function CompanyGraph() {
           label: n.title,
           description: n.description,
           nodeType: n.type,
+          propertyPreview: getPropertyPreview(n),
           raw: n,
         },
       })),
@@ -107,11 +176,11 @@ export function CompanyGraph() {
         id: e.id,
         source: e.sourceNodeId,
         target: e.targetNodeId,
-        label: e.type.replace('_', ' '),
+        label: e.type.replace(/_/g, ' '),
         animated: true,
-        style: { stroke: '#4B5563' },
-        labelStyle: { fill: '#9CA3AF', fontSize: 10 },
-        labelBgStyle: { fill: '#111827', fillOpacity: 0.8 },
+        style: { stroke: '#475569', strokeDasharray: '6 3' },
+        labelStyle: { fill: '#64748b', fontSize: 10 },
+        labelBgStyle: { fill: '#0f172a', fillOpacity: 0.9 },
       })),
     [graphEdges],
   );
@@ -126,15 +195,25 @@ export function CompanyGraph() {
 
   if (!company) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">
-        No company selected
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500 animate-fade-in">
+        <GitBranch className="h-10 w-10" />
+        <p className="text-lg font-medium">No company selected</p>
       </div>
     );
   }
 
-  if (loading) {
+  if (loading) return <SkeletonGraph />;
+
+  if (graphNodes.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">Loading graph...</div>
+      <div className="flex h-full flex-col items-center justify-center gap-4 text-slate-500 animate-fade-in">
+        <GitBranch className="h-12 w-12 text-slate-600" />
+        <p className="text-lg font-medium text-slate-400">No nodes yet</p>
+        <p className="text-sm text-slate-500">Run Genesis to build your company graph.</p>
+        <button onClick={() => navigate('/genesis')} className="btn-primary mt-2">
+          Go to Genesis
+        </button>
+      </div>
     );
   }
 
@@ -159,73 +238,101 @@ export function CompanyGraph() {
         edges={edges}
         nodeTypes={nodeTypes}
         onNodeClick={onNodeClick}
+        onPaneClick={() => setSelectedNode(null)}
         fitView
         minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} color="#1F2937" gap={24} size={1} />
+        <Background
+          variant={BackgroundVariant.Dots}
+          color="rgba(30, 41, 59, 0.3)"
+          gap={24}
+          size={1}
+        />
         <Controls
-          className="!border-gray-700 !bg-gray-900 [&>button]:!border-gray-700 [&>button]:!bg-gray-900 [&>button]:!fill-gray-400 [&>button:hover]:!bg-gray-800"
+          className="!rounded-xl !border-slate-700/40 !bg-slate-900/80 !shadow-xl [&>button]:!rounded-lg [&>button]:!border-slate-700/40 [&>button]:!bg-slate-900/80 [&>button]:!fill-slate-400 [&>button:hover]:!bg-slate-800 [&>button:hover]:!fill-amber-400"
         />
         <MiniMap
-          nodeColor="#4B5563"
-          maskColor="rgba(0,0,0,0.7)"
-          className="!border-gray-700 !bg-gray-950"
+          nodeColor={(node) => {
+            const d = node.data as GraphNodeData;
+            return NODE_BORDER_COLORS[d.nodeType] ?? '#64748b';
+          }}
+          maskColor="rgba(10, 15, 26, 0.85)"
+          className="!rounded-xl !border-slate-700/40 !bg-slate-950/90"
         />
       </ReactFlow>
 
+      {/* Fit View button */}
+      <button
+        onClick={() => {
+          /* ReactFlow fitView is handled internally by Controls */
+        }}
+        className="absolute left-4 top-4 z-10 btn-secondary flex items-center gap-2"
+        title="Fit View"
+      >
+        <Maximize className="h-4 w-4" />
+        Fit View
+      </button>
+
+      {/* Detail Panel */}
       {selectedNode && (
-        <div className="absolute right-0 top-0 z-10 h-full w-80 overflow-auto border-l border-gray-800 bg-gray-950 p-6">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <NodeBadge type={selectedNode.type} className="mb-2" />
-              <h3 className="text-lg font-semibold text-gray-100">{selectedNode.title}</h3>
-            </div>
-            <button
-              onClick={() => setSelectedNode(null)}
-              className="rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="absolute right-0 top-0 z-10 h-full w-[360px] animate-slide-in-right overflow-auto glass border-l border-slate-700/40 p-6">
+          {/* Close */}
+          <button
+            onClick={() => setSelectedNode(null)}
+            className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
-          <p className="mb-4 text-sm text-gray-400">{selectedNode.description}</p>
+          {/* Type badge */}
+          <NodeBadge type={selectedNode.type} className="mb-3" />
 
+          {/* Title */}
+          <h3 className="mb-2 text-xl font-bold text-slate-100">{selectedNode.title}</h3>
+
+          {/* Description */}
+          <p className="mb-6 text-sm leading-relaxed text-slate-400">{selectedNode.description}</p>
+
+          {/* Properties */}
           {Object.keys(selectedNode.properties).length > 0 && (
-            <div className="mb-4">
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Properties
-              </h4>
-              <dl className="space-y-1">
+            <div className="mb-6">
+              <h4 className="section-title mb-3">Properties</h4>
+              <div className="grid grid-cols-2 gap-2">
                 {Object.entries(selectedNode.properties).map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-sm">
-                    <dt className="text-gray-400">{key}</dt>
-                    <dd className="font-medium text-gray-200">{String(value)}</dd>
+                  <div
+                    key={key}
+                    className="rounded-lg bg-slate-800/60 px-3 py-2"
+                  >
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{key}</p>
+                    <p className="text-sm font-semibold text-slate-200">{String(value)}</p>
                   </div>
                 ))}
-              </dl>
+              </div>
             </div>
           )}
 
+          {/* Connected Nodes */}
           {connectedNodes.length > 0 && (
-            <div>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Connected Nodes
-              </h4>
+            <div className="mb-6">
+              <h4 className="section-title mb-3">Connected Nodes</h4>
               <ul className="space-y-2">
                 {connectedNodes.map(({ edge, node }) =>
                   node ? (
                     <li
                       key={edge.id}
-                      className="rounded-lg border border-gray-800 bg-gray-900 p-3"
+                      className="card cursor-pointer p-3 transition-all hover:bg-slate-800/60"
+                      onClick={() => setSelectedNode(node)}
                     >
                       <div className="flex items-center gap-2">
-                        <NodeBadge type={node.type} />
-                        <span className="text-sm font-medium text-gray-200">{node.title}</span>
+                        <div
+                          className={cn('h-2 w-2 rounded-full', NODE_DOT_CLASSES[node.type as NodeType])}
+                        />
+                        <span className="text-sm font-medium text-slate-200">{node.title}</span>
                       </div>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {edge.type.replace('_', ' ')}
+                      <p className="mt-1 text-xs text-slate-500">
+                        {edge.type.replace(/_/g, ' ')}
                       </p>
                     </li>
                   ) : null,
@@ -233,6 +340,15 @@ export function CompanyGraph() {
               </ul>
             </div>
           )}
+
+          {/* Simulate Change */}
+          <button
+            onClick={() => navigate(`/simulations?nodeId=${selectedNode.id}`)}
+            className="btn-primary w-full justify-center"
+          >
+            <FlaskConical className="h-4 w-4" />
+            Simulate Change
+          </button>
         </div>
       )}
     </div>

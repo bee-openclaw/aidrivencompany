@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Settings as SettingsIcon, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  Check,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Save,
+} from 'lucide-react';
 import { fetchSettings, updateSetting } from '@/api/settings';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +16,10 @@ const MODELS: Record<Provider, string[]> = {
   anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-haiku-20241022'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
 };
+
+function SkeletonPulse({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse rounded-lg bg-slate-600/40', className)} />;
+}
 
 export function Settings() {
   const [provider, setProvider] = useState<Provider>('anthropic');
@@ -38,8 +49,8 @@ export function Settings() {
   }, []);
 
   useEffect(() => {
-    if (!model || !MODELS[provider].includes(model)) {
-      setModel(MODELS[provider][0]!);
+    if (!model || !MODELS[provider]!.includes(model)) {
+      setModel(MODELS[provider]![0]!);
     }
   }, [provider]);
 
@@ -65,95 +76,126 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">Loading...</div>
+      <div className="mx-auto max-w-2xl p-8 animate-fade-in">
+        <SkeletonPulse className="mb-2 h-8 w-48" />
+        <SkeletonPulse className="mb-8 h-5 w-80" />
+        <SkeletonPulse className="h-96" />
+      </div>
     );
   }
 
   const isConfigured = !!maskedKey;
 
   return (
-    <div className="mx-auto max-w-2xl p-8">
+    <div className="mx-auto max-w-2xl p-8 animate-fade-in">
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="flex items-center gap-3 text-2xl font-bold text-gray-100">
-          <SettingsIcon className="h-6 w-6 text-gray-400" />
+        <h1 className="flex items-center gap-3 text-2xl font-bold text-slate-100">
+          <SettingsIcon className="h-7 w-7 text-amber-400" />
           Settings
         </h1>
-        <p className="mt-2 text-sm text-gray-400">
+        <p className="mt-2 text-sm text-slate-400">
           Configure your AI provider to power company generation and simulations.
         </p>
       </div>
 
-      <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-        {/* Status indicator */}
-        <div className="mb-6 flex items-center gap-2">
-          <div
-            className={cn(
-              'h-2.5 w-2.5 rounded-full',
-              isConfigured ? 'bg-emerald-500' : 'bg-gray-600',
-            )}
-          />
-          <span className="text-sm text-gray-400">
-            {isConfigured ? 'AI provider configured' : 'Not configured'}
-          </span>
-        </div>
-
-        {/* Provider selection */}
+      <div className="card p-6">
+        {/* LLM Provider section header */}
         <div className="mb-6">
-          <label className="mb-3 block text-sm font-medium text-gray-200">LLM Provider</label>
+          <h2 className="section-title mb-4">LLM Provider</h2>
+
+          {/* Provider radio toggle */}
           <div className="flex gap-3">
             {([
-              { value: 'anthropic' as const, label: 'Anthropic (Claude)' },
-              { value: 'openai' as const, label: 'OpenAI (ChatGPT)' },
+              { value: 'anthropic' as const, label: 'Anthropic', subtitle: 'Claude' },
+              { value: 'openai' as const, label: 'OpenAI', subtitle: 'ChatGPT' },
             ]).map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setProvider(opt.value)}
                 className={cn(
-                  'flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
+                  'group relative flex flex-1 items-center gap-3 rounded-xl border px-5 py-4 text-left transition-all',
                   provider === opt.value
-                    ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                    : 'border-gray-700 bg-gray-950 text-gray-400 hover:border-gray-600 hover:text-gray-300',
+                    ? 'border-amber-500/50 bg-amber-500/5'
+                    : 'border-slate-700/40 bg-slate-800/40 hover:border-slate-600/50 hover:bg-slate-800/60',
                 )}
               >
-                {opt.label}
+                {/* Radio indicator */}
+                <div
+                  className={cn(
+                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all',
+                    provider === opt.value
+                      ? 'border-amber-500'
+                      : 'border-slate-600',
+                  )}
+                >
+                  {provider === opt.value && (
+                    <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                  )}
+                </div>
+                <div>
+                  <p
+                    className={cn(
+                      'text-sm font-semibold',
+                      provider === opt.value ? 'text-slate-100' : 'text-slate-300',
+                    )}
+                  >
+                    {opt.label}
+                  </p>
+                  <p className="text-xs text-slate-500">{opt.subtitle}</p>
+                </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* API Key */}
+        {/* Divider */}
+        <div className="mb-6 border-t border-slate-700/40" />
+
+        {/* API Key section */}
         <div className="mb-6">
-          <label className="mb-2 block text-sm font-medium text-gray-200">API Key</label>
-          {maskedKey && !apiKey && (
-            <p className="mb-2 text-xs text-gray-500">Current key: {maskedKey}</p>
-          )}
+          <h2 className="section-title mb-4">API Key</h2>
+          <div className="mb-2 flex items-center gap-2">
+            <div
+              className={cn(
+                'h-2 w-2 rounded-full',
+                isConfigured ? 'bg-emerald-500 shadow-lg shadow-emerald-500/50' : 'bg-slate-600',
+              )}
+            />
+            <span className="text-xs text-slate-400">
+              {isConfigured ? `Configured (${maskedKey})` : 'Not configured'}
+            </span>
+          </div>
           <div className="relative">
             <input
               type={showKey ? 'text' : 'password'}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={maskedKey ? 'Enter new key to replace' : 'sk-...'}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-4 py-3 pr-10 text-sm text-gray-100 placeholder-gray-600 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="input pr-10"
             />
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-300"
             >
               {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
 
+        {/* Divider */}
+        <div className="mb-6 border-t border-slate-700/40" />
+
         {/* Model selection */}
         <div className="mb-8">
-          <label className="mb-2 block text-sm font-medium text-gray-200">Model</label>
+          <h2 className="section-title mb-4">Model</h2>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-lg border border-gray-700 bg-gray-950 px-4 py-3 text-sm text-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="input"
           >
-            {MODELS[provider].map((m) => (
+            {MODELS[provider]!.map((m) => (
               <option key={m} value={m}>
                 {m}
               </option>
@@ -166,10 +208,9 @@ export function Settings() {
           onClick={handleSave}
           disabled={saving}
           className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
-            saving
-              ? 'cursor-not-allowed bg-gray-700 text-gray-400'
-              : 'bg-primary-600 text-white hover:bg-primary-700',
+            'w-full transition-all',
+            saving ? 'btn-secondary cursor-not-allowed opacity-50' : 'btn-primary',
+            'flex items-center justify-center gap-2 py-3',
           )}
         >
           {saving ? (
@@ -177,15 +218,18 @@ export function Settings() {
           ) : status === 'saved' ? (
             <>
               <Check className="h-4 w-4" />
-              Saved
+              Saved Successfully
             </>
           ) : status === 'error' ? (
             <>
               <AlertCircle className="h-4 w-4" />
-              Failed to save
+              Failed to Save
             </>
           ) : (
-            'Save Settings'
+            <>
+              <Save className="h-4 w-4" />
+              Save Settings
+            </>
           )}
         </button>
       </div>

@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Scale, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Scale, Check, ExternalLink, Clock } from 'lucide-react';
 import type { Decision } from '@aidrivencompany/shared';
 import { useCompany } from '@/context/CompanyContext';
 import { fetchDecisions } from '@/api/decisions';
 import { cn } from '@/lib/utils';
+
+function SkeletonPulse({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse rounded-lg bg-slate-600/40', className)} />;
+}
+
+function formatDecisionDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 export function Decisions() {
   const { company } = useCompany();
@@ -21,97 +34,132 @@ export function Decisions() {
 
   if (!company) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">
-        No company selected
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500 animate-fade-in">
+        <Scale className="h-10 w-10" />
+        <p className="text-lg font-medium">No company selected</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">Loading...</div>
+      <div className="p-8 animate-fade-in">
+        <SkeletonPulse className="mb-2 h-8 w-48" />
+        <SkeletonPulse className="mb-8 h-5 w-64" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="mb-4 flex gap-4">
+            <SkeletonPulse className="h-4 w-4 shrink-0 rounded-full" />
+            <SkeletonPulse className="h-32 flex-1" />
+          </div>
+        ))}
+      </div>
     );
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 animate-fade-in">
+      {/* Header */}
       <div className="mb-8 flex items-center gap-3">
-        <Scale className="h-6 w-6 text-lime-400" />
-        <h1 className="text-2xl font-bold text-gray-100">Decision Log</h1>
-        <span className="rounded-full bg-gray-800 px-2.5 py-0.5 text-xs font-medium text-gray-400">
-          {decisions.length}
-        </span>
+        <Scale className="h-7 w-7 text-amber-400" />
+        <h1 className="text-2xl font-bold text-slate-100">Decisions</h1>
       </div>
 
       {decisions.length === 0 ? (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-12 text-center text-gray-500">
-          No decisions recorded
+        <div className="card flex flex-col items-center justify-center py-16 text-center">
+          <Scale className="mb-4 h-12 w-12 text-slate-600" />
+          <p className="text-lg font-medium text-slate-400">No decisions recorded</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Decisions will appear here as your company evolves and choices are made.
+          </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {decisions.map((decision) => (
-            <div
-              key={decision.id}
-              className="rounded-xl border border-gray-800 bg-gray-900 p-6"
-            >
-              <div className="mb-3 flex items-start justify-between">
-                <h3 className="text-lg font-medium text-gray-100">{decision.title}</h3>
-                <span className="shrink-0 text-xs text-gray-500">
-                  {new Date(decision.decidedAt).toLocaleDateString()}
-                </span>
-              </div>
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-[11px] top-2 bottom-2 w-px bg-slate-700/60" />
 
-              <div className="mb-4 space-y-2">
-                {decision.options.map((opt) => {
-                  const isChosen = opt.label === decision.chosenOption;
-                  return (
+          <ul className="space-y-6">
+            {decisions.map((decision) => {
+              const isDecided = !!decision.chosenOption;
+
+              return (
+                <li key={decision.id} className="relative flex gap-5 pl-0">
+                  {/* Timeline dot */}
+                  <div className="relative z-10 mt-5 flex shrink-0">
                     <div
-                      key={opt.label}
                       className={cn(
-                        'flex items-start gap-3 rounded-lg border px-4 py-3',
-                        isChosen
-                          ? 'border-emerald-500/30 bg-emerald-500/10'
-                          : 'border-gray-800 bg-gray-950',
+                        'h-6 w-6 rounded-full border-2 flex items-center justify-center',
+                        isDecided
+                          ? 'border-amber-500 bg-amber-500/20'
+                          : 'border-slate-600 bg-slate-800',
                       )}
                     >
-                      {isChosen && (
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                      {isDecided ? (
+                        <Check className="h-3 w-3 text-amber-400" />
+                      ) : (
+                        <Clock className="h-3 w-3 text-slate-500" />
                       )}
-                      <div className={cn(!isChosen && 'ml-7')}>
-                        <p
-                          className={cn(
-                            'text-sm font-medium',
-                            isChosen ? 'text-emerald-300' : 'text-gray-400',
-                          )}
-                        >
-                          {opt.label}
-                        </p>
-                        {opt.description && (
-                          <p className="mt-0.5 text-xs text-gray-500">{opt.description}</p>
-                        )}
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
 
-              {decision.rationale && (
-                <div className="rounded-lg bg-gray-950 p-4">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Rationale
-                  </p>
-                  <p className="text-sm text-gray-300">{decision.rationale}</p>
-                </div>
-              )}
+                  {/* Decision card */}
+                  <div className="card flex-1 p-5">
+                    {/* Title and date */}
+                    <div className="mb-4 flex items-start justify-between">
+                      <h3 className="text-lg font-semibold text-slate-100">{decision.title}</h3>
+                      <span className="ml-4 shrink-0 text-xs text-slate-500">
+                        {formatDecisionDate(decision.decidedAt)}
+                      </span>
+                    </div>
 
-              {decision.simulationId && (
-                <div className="mt-3 flex items-center gap-1.5 text-xs text-primary-400">
-                  <ExternalLink className="h-3 w-3" />
-                  <span>Linked to simulation</span>
-                </div>
-              )}
-            </div>
-          ))}
+                    {/* Options as pills */}
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {decision.options.map((opt) => {
+                        const isChosen = opt.label === decision.chosenOption;
+                        return (
+                          <div
+                            key={opt.label}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+                              isChosen
+                                ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30'
+                                : 'bg-slate-800/60 text-slate-400',
+                            )}
+                            title={opt.description}
+                          >
+                            {isChosen && <Check className="h-3.5 w-3.5" />}
+                            {opt.label}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Rationale */}
+                    {decision.rationale && (
+                      <div className="rounded-xl bg-slate-800/40 p-4">
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                          Rationale
+                        </p>
+                        <p className="text-sm leading-relaxed text-slate-300">
+                          {decision.rationale}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Simulation link */}
+                    {decision.simulationId && (
+                      <a
+                        href="/simulations"
+                        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-amber-400 transition-colors hover:text-amber-300"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View linked simulation
+                      </a>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </div>
