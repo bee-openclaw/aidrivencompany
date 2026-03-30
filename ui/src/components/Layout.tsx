@@ -7,6 +7,7 @@ import {
   Award,
   Scale,
   ChevronDown,
+  Settings,
 } from 'lucide-react';
 import { useCompany } from '@/context/CompanyContext';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { to: '/campaigns', icon: Megaphone, label: 'Campaigns' },
   { to: '/proof', icon: Award, label: 'Proof' },
   { to: '/decisions', icon: Scale, label: 'Decisions' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function Layout() {

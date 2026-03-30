@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { getSimulations, createSimulation, updateSimulationStatus, getNode, getEdges } from '@aidrivencompany/db';
+import { runSimulation } from '../services/simulation.js';
 
 export const simulationsRouter = Router();
 
@@ -10,7 +11,7 @@ simulationsRouter.get('/companies/:companyId/simulations', (req, res) => {
   res.json({ data: simulations });
 });
 
-simulationsRouter.post('/companies/:companyId/simulations', (req, res) => {
+simulationsRouter.post('/companies/:companyId/simulations', async (req, res) => {
   const db = req.app.locals.db as Database.Database;
   const { title, description, triggerNodeId, triggerChange } = req.body as {
     title: string;
@@ -30,7 +31,31 @@ simulationsRouter.post('/companies/:companyId/simulations', (req, res) => {
     return;
   }
 
-  // Generate mock impact report by finding connected nodes
+  try {
+    // Try real LLM simulation first
+    const llmResult = await runSimulation(db, req.params.companyId, triggerNodeId, triggerChange);
+
+    if (llmResult) {
+      // LLM simulation succeeded
+      const simulation = createSimulation(db, {
+        companyId: req.params.companyId,
+        title,
+        description: description || llmResult.summary,
+        triggerNodeId,
+        triggerChange,
+        impactReport: llmResult.impactReport,
+        status: 'completed',
+      });
+
+      res.status(201).json({ data: simulation });
+      return;
+    }
+  } catch (err) {
+    // LLM failed — log and fall through to mock
+    console.warn('LLM simulation failed, falling back to mock:', err instanceof Error ? err.message : err);
+  }
+
+  // Fallback: generate mock impact report by finding connected nodes
   const allEdges = getEdges(db, req.params.companyId);
   const connectedEdges = allEdges.filter((e) => e.sourceNodeId === triggerNodeId || e.targetNodeId === triggerNodeId);
 

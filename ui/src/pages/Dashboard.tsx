@@ -1,12 +1,40 @@
 import { useEffect, useState } from 'react';
-import { Activity, BarChart3, FlaskConical, Megaphone, Award, Scale } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Activity, BarChart3, FlaskConical, Megaphone, Award, Scale, Sparkles, Rocket } from 'lucide-react';
 import type { DashboardData } from '@aidrivencompany/shared';
 import { useCompany } from '@/context/CompanyContext';
 import { fetchDashboard } from '@/api/dashboard';
 import { cn } from '@/lib/utils';
 
+function Welcome() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex min-h-full flex-col items-center justify-center p-8">
+      <div className="max-w-lg text-center">
+        <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-500/20 to-purple-500/20 ring-1 ring-primary-500/30">
+          <Rocket className="h-10 w-10 text-primary-400" />
+        </div>
+        <h1 className="text-4xl font-bold tracking-tight text-gray-100">
+          Welcome to AIDrivenCompany
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-lg leading-relaxed text-gray-400">
+          Start by describing your vision and we&apos;ll help you build your company.
+        </p>
+        <button
+          onClick={() => navigate('/genesis')}
+          className="mt-10 inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-primary-600 to-purple-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-primary-900/30 transition-all hover:from-primary-500 hover:to-purple-500 hover:shadow-primary-900/50"
+        >
+          <Sparkles className="h-5 w-5" />
+          Create Your First Company
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function Dashboard() {
-  const { company } = useCompany();
+  const { company, companies, loading: companiesLoading } = useCompany();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,12 +47,14 @@ export function Dashboard() {
       .finally(() => setLoading(false));
   }, [company?.id]);
 
-  if (!company) {
+  if (companiesLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">
-        No company selected
-      </div>
+      <div className="flex h-full items-center justify-center text-gray-500">Loading...</div>
     );
+  }
+
+  if (!company || companies.length === 0) {
+    return <Welcome />;
   }
 
   if (loading) {

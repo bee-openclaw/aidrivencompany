@@ -1,12 +1,13 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Company } from '@aidrivencompany/shared';
-import { fetchCompanies } from '@/api/companies';
+import { fetchCompanies, createCompany as apiCreateCompany } from '@/api/companies';
 
 interface CompanyContextValue {
   company: Company | null;
   companies: Company[];
   loading: boolean;
   switchCompany: (id: string) => void;
+  createCompany: (name: string, description: string, vision?: string) => Promise<Company>;
 }
 
 const CompanyContext = createContext<CompanyContextValue>({
@@ -14,6 +15,7 @@ const CompanyContext = createContext<CompanyContextValue>({
   companies: [],
   loading: true,
   switchCompany: () => {},
+  createCompany: () => Promise.reject(new Error('Not initialized')),
 });
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
@@ -40,8 +42,18 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     if (found) setCompany(found);
   }
 
+  const createCompany = useCallback(
+    async (name: string, description: string, vision?: string): Promise<Company> => {
+      const newCompany = await apiCreateCompany(name, description, vision);
+      setCompanies((prev) => [...prev, newCompany]);
+      setCompany(newCompany);
+      return newCompany;
+    },
+    [],
+  );
+
   return (
-    <CompanyContext.Provider value={{ company, companies, loading, switchCompany }}>
+    <CompanyContext.Provider value={{ company, companies, loading, switchCompany, createCompany }}>
       {children}
     </CompanyContext.Provider>
   );

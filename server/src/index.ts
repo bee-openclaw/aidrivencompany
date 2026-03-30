@@ -11,8 +11,10 @@ import { campaignsRouter } from './routes/campaigns.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { proofRouter } from './routes/proof.js';
 import { decisionsRouter } from './routes/decisions.js';
+import { settingsRouter } from './routes/settings.js';
+import { genesisRouter } from './routes/genesis.js';
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3100;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 7100;
 const DB_DIR = path.join(os.homedir(), '.aidrivencompany');
 const DB_PATH = process.env.DB_PATH ?? path.join(DB_DIR, 'dev.db');
 
@@ -45,6 +47,8 @@ app.use('/api', campaignsRouter);
 app.use('/api', dashboardRouter);
 app.use('/api', proofRouter);
 app.use('/api', decisionsRouter);
+app.use('/api', settingsRouter);
+app.use('/api', genesisRouter);
 
 app.listen(PORT, () => {
   console.log(`AIDrivenCompany server running on http://localhost:${PORT}`);

@@ -121,6 +121,12 @@ const CREATE_TABLES_SQL = `
   CREATE INDEX IF NOT EXISTS idx_metric_snapshots_company ON metric_snapshots(company_id);
   CREATE INDEX IF NOT EXISTS idx_decisions_company ON decisions(company_id);
   CREATE INDEX IF NOT EXISTS idx_activity_log_company ON activity_log(company_id);
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `;
 
 export function initDatabase(dbPath: string): Database.Database {

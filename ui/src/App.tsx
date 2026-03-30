@@ -7,6 +7,8 @@ import { Simulations } from '@/pages/Simulations';
 import { Campaigns } from '@/pages/Campaigns';
 import { Proof } from '@/pages/Proof';
 import { Decisions } from '@/pages/Decisions';
+import { Genesis } from '@/pages/Genesis';
+import { Settings } from '@/pages/Settings';
 
 export function App() {
   return (
@@ -19,6 +21,8 @@ export function App() {
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/proof" element={<Proof />} />
           <Route path="/decisions" element={<Decisions />} />
+          <Route path="/genesis" element={<Genesis />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </CompanyProvider>
